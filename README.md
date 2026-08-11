@@ -22,3 +22,5 @@ Whether you're catching up with friends, collaborating on ideas, or just taking 
 
 No sign‑ups, no installations – just open the page and go.
 Perfect for game nights, study groups, or casual hangouts.
+
+So, check out the "index.html"
