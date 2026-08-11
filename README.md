@@ -1,4 +1,8 @@
 🎮 Game‑Room
+
+
+
+
 Pause, play, and connect – all in one place.
 
 Game‑Room is a fully functional, single‑file web app that brings together real‑time group video calling, text chat, a multi‑game arcade, and a rich note‑taking tool – completely free and ready to use.
