@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --sidebar-bg: #ffffff;
+            --main-bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #999;
+            --border: #e0e0e0;
+            --accent: #fbbc04;
+            --accent-hover: #e8a800;
+            --accent-text: #1a1a1a;
+            --danger: #e53935;
+            --danger-hover: #c62828;
+            --toolbar-bg: #ffffff;
+            --toolbar-border: #e0e0e0;
+            --editor-bg: #ffffff;
+            --canvas-bg: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --note-active-bg: #fff8e1;
+            --note-hover-bg: #f9f9f9;
+            --pinned-bg: #fffdf5;
+            --trash-bg: #fff5f5;
+            --drawing-container-bg: #f0f0f0;
+            --toast-bg: #333;
+            --toast-text: #fff;
+            --modal-overlay: rgba(0, 0, 0, 0.5);
+            --scrollbar-thumb: #c1c1c1;
+            --scrollbar-track: transparent;
+        }
+
+        .dark-mode {
+            --bg: #1a1a1f;
+            --sidebar-bg: #222228;
+            --main-bg: #1e1e23;
+            --card-bg: #282830;
+            --text: #e4e4e4;
+            --text-secondary: #aaa;
+            --text-tertiary: #777;
+            --border: #383840;
+            --accent: #fbbc04;
+            --accent-hover: #f5c518;
+            --accent-text: #1a1a1a;
+            --danger: #ef5350;
+            --danger-hover: #e53935;
+            --toolbar-bg: #222228;
+            --toolbar-border: #383840;
+            --editor-bg: #282830;
+            --canvas-bg: #282830;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --note-active-bg: #3a3520;
+            --note-hover-bg: #2a2a32;
+            --pinned-bg: #2a2820;
+            --trash-bg: #2a2020;
+            --drawing-container-bg: #2a2a30;
+            --toast-bg: #555;
+            --toast-text: #fff;
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --scrollbar-thumb: #555;
+            --scrollbar-track: transparent;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #app {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 300px;
+            min-width: 300px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: transform var(--transition), width var(--transition), min-width var(--transition);
+            z-index: 100;
+            position: relative;
+        }
+
+        #sidebar.collapsed {
+            transform: translateX(-100%);
+            min-width: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 16px 16px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .sidebar-header .app-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .sidebar-header .header-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+        .icon-btn:hover {
+            background: var(--note-hover-bg);
+            color: var(--text);
+        }
+        .icon-btn:active {
+            transform: scale(0.92);
+        }
+        .icon-btn.active-toggle {
+            background: var(--accent);
+            color: var(--accent-text);
+            border-radius: 50%;
+        }
+        .icon-btn.active-toggle:hover {
+            background: var(--accent-hover);
+        }
+
+        #search-container {
+            padding: 10px 14px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        #search-input {
+            width: 100%;
+            padding: 10px 14px 10px 38px;
+            border-radius: 24px;
+            border: 1.5px solid var(--border);
+            background: var(--main-bg);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all var(--transition);
+            font-family: var(--font);
+        }
+        #search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(251, 188, 4, 0.15);
+        }
+        .search-icon {
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+
+        #sort-container {
+            padding: 4px 14px 8px;
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .sort-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            font-family: var(--font);
+            white-space: nowrap;
+        }
+        .sort-btn.active {
+            background: var(--accent);
+            color: var(--accent-text);
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .sort-btn:hover:not(.active) {
+            background: var(--note-hover-bg);
+        }
+
+        #notes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 10px 10px;
+            scroll-behavior: smooth;
+        }
+        #notes-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        #notes-list::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 10px;
+        }
+        #notes-list::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        .note-item {
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-bottom: 4px;
+            border: 1.5px solid transparent;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .note-item:hover {
+            background: var(--note-hover-bg);
+        }
+        .note-item.active {
+            background: var(--note-active-bg);
+            border-color: var(--accent);
+        }
+        .note-item.pinned {
+            background: var(--pinned-bg);
+        }
+        .note-item.pinned.active {
+            border-color: var(--accent);
+            background: var(--note-active-bg);
+        }
+        .note-item .pin-icon {
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+            opacity: 0.7;
+        }
+        .note-item .note-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .note-item .note-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .note-item .note-preview {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+        .note-item .note-time {
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            margin-top: 3px;
+        }
+        .note-item .note-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity var(--transition);
+            flex-shrink: 0;
+        }
+        .note-item:hover .note-actions {
+            opacity: 1;
+        }
+        .note-item .mini-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+        }
+        .note-item .mini-btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--text);
+        }
+        .dark-mode .note-item .mini-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .note-item .mini-btn.danger:hover {
+            color: var(--danger);
+            background: rgba(229, 57, 53, 0.1);
+        }
+
+        .sidebar-footer {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+        }
+        .trash-link {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: none;
+            border: none;
+            font-family: var(--font);
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 16px;
+        }
+        .trash-link:hover {
+            color: var(--danger);
+            background: var(--trash-bg);
+        }
+        .trash-link .trash-count {
+            background: var(--danger);
+            color: #fff;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .trash-link .trash-count:empty {
+            display: none;
+        }
+
+        /* Main area */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-width: 0;
+            background: var(--main-bg);
+            transition: all var(--transition);
+        }
+
+        #toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 8px 12px;
+            background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--toolbar-border);
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 50;
+            min-height: 48px;
+        }
+        .toolbar-group {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+            padding: 0 4px;
+        }
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 6px;
+            flex-shrink: 0;
+        }
+        .tbtn {
+            padding: 7px 12px;
+            border-radius: 6px;
+            border: 1.5px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            white-space: nowrap;
+            font-family: var(--font);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .tbtn:hover {
+            background: var(--note-hover-bg);
+            color: var(--text);
+        }
+        .tbtn:active {
+            transform: scale(0.94);
+        }
+        .tbtn.active-tool {
+            background: var(--accent);
+            color: var(--accent-text);
+            border-color: var(--accent);
+            font-weight: 700;
+        }
+        .tbtn.primary {
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 700;
+            border-color: var(--accent);
+        }
+        .tbtn.primary:hover {
+            background: var(--accent-hover);
+        }
+        .tbtn.danger {
+            color: var(--danger);
+        }
+        .tbtn.danger:hover {
+            background: rgba(229, 57, 53, 0.08);
+            border-color: var(--danger);
+        }
+        .color-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+        .color-swatch:hover {
+            transform: scale(1.2);
+            border-color: var(--text);
+        }
+        .color-swatch.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(251, 188, 4, 0.3);
+            transform: scale(1.15);
+        }
+        input[type="color"] {
+            width: 32px;
+            height: 28px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 2px;
+            background: var(--card-bg);
+            flex-shrink: 0;
+        }
+        input[type="range"] {
+            width: 70px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+        .size-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        #mode-toggle-group {
+            display: flex;
+            background: var(--main-bg);
+            border-radius: 20px;
+            padding: 3px;
+            gap: 0;
+            border: 1.5px solid var(--border);
+        }
+        #mode-toggle-group .tbtn {
+            border-radius: 18px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            border: none;
+        }
+        #mode-toggle-group .tbtn.active-tool {
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 700;
+        }
+
+        /* Editor */
+        #editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        #title-input {
+            width: 100%;
+            padding: 14px 20px 8px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            outline: none;
+            font-family: var(--font);
+            letter-spacing: -0.3px;
+            flex-shrink: 0;
+        }
+        #title-input::placeholder {
+            color: var(--text-tertiary);
+            font-weight: 400;
+        }
+        #text-editor {
+            flex: 1;
+            padding: 8px 20px 40px;
+            font-size: 1rem;
+            line-height: 1.7;
+            outline: none;
+            border: none;
+            background: var(--editor-bg);
+            color: var(--text);
+            overflow-y: auto;
+            font-family: var(--font);
+            -webkit-user-select: text;
+            user-select: text;
+            min-height: 150px;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+        #text-editor:empty::before {
+            content: 'Start writing...';
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+        #text-editor h1,
+        #text-editor h2,
+        #text-editor h3 {
+            margin: 0.5em 0 0.3em;
+            line-height: 1.3;
+        }
+        #text-editor h1 {
+            font-size: 1.6rem;
+        }
+        #text-editor h2 {
+            font-size: 1.3rem;
+        }
+        #text-editor h3 {
+            font-size: 1.1rem;
+        }
+        #text-editor ul,
+        #text-editor ol {
+            padding-left: 24px;
+            margin: 0.3em 0;
+        }
+        #text-editor::-webkit-scrollbar {
+            width: 6px;
+        }
+        #text-editor::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 10px;
+        }
+        #text-editor::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #drawing-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--drawing-container-bg);
+            position: relative;
+            overflow: hidden;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            min-height: 200px;
+        }
+        #drawing-canvas {
+            cursor: crosshair;
+            touch-action: none;
+            border-radius: 4px;
+            box-shadow: var(--shadow-md);
+            max-width: 100%;
+            max-height: 100%;
+            background: var(--canvas-bg);
+        }
+        #drawing-preview {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin: 10px 0;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            transition: all var(--transition);
+            display: none;
+        }
+        #drawing-preview:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-sm);
+        }
+        #drawing-preview.visible {
+            display: block;
+        }
+        .drawing-quick-colors {
+            display: flex;
+            gap: 6px;
+            padding: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            border-top: 1px solid var(--border);
+            background: var(--toolbar-bg);
+            flex-shrink: 0;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #saved-indicator {
+            font-weight: 600;
+            color: #4caf50;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+        #saved-indicator.visible {
+            opacity: 1;
+        }
+        #word-count {
+            white-space: nowrap;
+        }
+
+        /* Modal */
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--modal-overlay);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition);
+        }
+        #modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #modal-box {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+        #modal-box h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        #modal-box p {
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+            font-size: 0.9rem;
+        }
+        #modal-box .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #modal-box .modal-actions button {
+            padding: 10px 22px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            font-family: var(--font);
+        }
+        .btn-cancel {
+            background: var(--main-bg);
+            color: var(--text);
+        }
+        .btn-cancel:hover {
+            background: var(--border);
+        }
+        .btn-confirm {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-confirm:hover {
+            background: var(--danger-hover);
+        }
+        .btn-secondary-confirm {
+            background: var(--accent);
+            color: var(--accent-text);
+        }
+        .btn-secondary-confirm:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 10px 24px;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-lg);
+            white-space: nowrap;
+        }
+        #toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Hamburger */
+        #hamburger-btn {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 280px;
+                min-width: 280px;
+                z-index: 150;
+                box-shadow: var(--shadow-lg);
+                transform: translateX(-100%);
+            }
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            #sidebar.collapsed {
+                transform: translateX(-100%);
+                min-width: 280px;
+                width: 280px;
+                overflow: hidden;
+            }
+            #hamburger-btn {
+                display: flex;
+            }
+            #toolbar {
+                padding: 6px 8px;
+                gap: 2px;
+                flex-wrap: wrap;
+                min-height: 42px;
+            }
+            .tbtn {
+                padding: 6px 9px;
+                font-size: 0.78rem;
+            }
+            .toolbar-divider {
+                margin: 0 2px;
+                height: 20px;
+            }
+            #title-input {
+                font-size: 1.1rem;
+                padding: 10px 14px 6px;
+            }
+            #text-editor {
+                padding: 6px 14px 30px;
+                font-size: 0.95rem;
+            }
+            #mode-toggle-group .tbtn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+            input[type="range"] {
+                width: 50px;
+            }
+            .size-label {
+                font-size: 0.7rem;
+                min-width: 22px;
+            }
+            #drawing-canvas {
+                max-width: 98%;
+                max-height: 70vh;
+            }
+        }
+        @media (max-width: 480px) {
+            #toolbar {
+                gap: 1px;
+                padding: 4px 4px;
+            }
+            .tbtn {
+                padding: 5px 7px;
+                font-size: 0.72rem;
+                border-radius: 4px;
+            }
+            .toolbar-divider {
+                margin: 0 1px;
+                height: 16px;
+            }
+            #status-bar {
+                font-size: 0.68rem;
+                padding: 4px 10px;
+            }
+            #title-input {
+                font-size: 1rem;
+            }
+            #text-editor {
+                font-size: 0.9rem;
+                padding: 4px 10px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <span class="app-title">📝 Notes</span>
+                <div class="header-actions">
+                    <button class="icon-btn" id="dark-mode-btn" title="Toggle Dark Mode">🌓</button>
+                    <button class="icon-btn" id="hamburger-btn" title="Close Sidebar">✕</button>
+                </div>
+            </div>
+            <div id="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" placeholder="Search notes..." autocomplete="off">
+            </div>
+            <div id="sort-container">
+                <button class="sort-btn active" data-sort="newest">Newest</button>
+                <button class="sort-btn" data-sort="oldest">Oldest</button>
+            </div>
+            <div id="notes-list"></div>
+            <div class="sidebar-footer">
+                <span id="note-count">0 notes</span>
+                <button class="trash-link" id="trash-btn">🗑️ Trash <span class="trash-count" id="trash-count"></span></button>
+            </div>
+        </aside>
+
+        <!-- Mobile sidebar overlay -->
+        <div id="sidebar-overlay" style="display:none;position:fixed;inset:0;background:var(--modal-overlay);z-index:140;"
+        onclick="document.getElementById('sidebar').classList.remove('mobile-open')"></div>
+
+        <!-- Main -->
+        <main id="main">
+            <div id="toolbar">
+                <button class="icon-btn" id="hamburger-btn-open" title="Open Sidebar" style="display:none;">☰</button>
+                <button class="tbtn primary" id="new-note-btn" title="New Note">＋ New</button>
+                <span class="toolbar-divider"></span>
+                <div id="mode-toggle-group">
+                    <button class="tbtn active-tool" data-mode="text" id="mode-text-btn">📄 Text</button>
+                    <button class="tbtn" data-mode="drawing" id="mode-drawing-btn">🎨 Draw</button>
+                </div>
+                <span class="toolbar-divider"></span>
+                <!-- Text tools -->
+                <div class="toolbar-group" id="text-tools-group">
+                    <button class="tbtn" data-command="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+                    <button class="tbtn" data-command="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+                    <button class="tbtn" data-command="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+                    <select id="heading-select" class="tbtn" style="padding:6px 8px;cursor:pointer;"
+                    title="Heading level">
+                    <option value="p">Normal</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                </select>
+                <button class="tbtn" data-command="insertUnorderedList" title="Bullet List">• List</button>
+                <button class="tbtn" data-command="insertOrderedList" title="Numbered List">1. List</button>
+                <input type="color" id="text-color-picker" value="#1a1a1a" title="Text Color"
+                style="width:28px;height:28px;padding:1px;">
+            </div>
+            <!-- Drawing tools -->
+            <div class="toolbar-group hidden" id="drawing-tools-group">
+                <button class="tbtn active-tool" id="pen-tool-btn" title="Pen">🖊️ Pen</button>
+                <button class="tbtn" id="eraser-tool-btn" title="Eraser">🧹 Eraser</button>
+                <span class="size-label" id="pen-size-label">3px</span>
+                <input type="range" id="pen-size-slider" min="1" max="25" value="3" title="Pen Size">
+                <span class="toolbar-divider"></span>
+                <span class="color-swatch selected" data-color="#1a1a1a" style="background:#1a1a1a;" title="Black"></span>
+                <span class="color-swatch" data-color="#e53935" style="background:#e53935;" title="Red"></span>
+                <span class="color-swatch" data-color="#1e88e5" style="background:#1e88e5;" title="Blue"></span>
+                <span class="color-swatch" data-color="#43a047" style="background:#43a047;" title="Green"></span>
+                <span class="color-swatch" data-color="#fdd835" style="background:#fdd835;" title="Yellow"></span>
+                <span class="color-swatch" data-color="#8e24aa" style="background:#8e24aa;" title="Purple"></span>
+                <input type="color" id="drawing-color-picker" value="#1a1a1a" title="Custom Color"
+                style="width:28px;height:28px;padding:1px;">
+            </div>
+            <span class="toolbar-divider"></span>
+            <button class="tbtn" id="undo-btn" title="Undo (Ctrl+Z)">↩ Undo</button>
+            <button class="tbtn" id="redo-btn" title="Redo (Ctrl+Y)">↪ Redo</button>
+            <button class="tbtn" id="clear-drawing-btn" title="Clear Drawing" style="display:none;">🗑️ Clear</button>
+            <span class="toolbar-divider"></span>
+            <button class="tbtn" id="save-btn" title="Save (Ctrl+S)">💾 Save</button>
+            <button class="tbtn" id="export-note-btn" title="Export Note">📤 Export</button>
+            <button class="tbtn" id="import-note-btn" title="Import Note">📥 Import</button>
+            <input type="file" id="import-file-input" accept=".txt,.html,.json" style="display:none;">
+            <button class="tbtn" id="duplicate-btn" title="Duplicate Note">📋 Duplicate</button>
+        </div>
+
+        <!-- Editor -->
+        <div id="editor-container">
+            <input type="text" id="title-input" placeholder="Untitled Note" maxlength="120">
+            <div id="text-editor" contenteditable="true" placeholder="Start writing..."></div>
+            <div id="drawing-container" class="hidden">
+                <canvas id="drawing-canvas"></canvas>
+                <div class="drawing-quick-colors" id="drawing-quick-colors-mobile" style="display:none;"></div>
+            </div>
+            <img id="drawing-preview" alt="Drawing preview" title="Click to edit drawing">
+        </div>
+
+        <!-- Status bar -->
+        <div id="status-bar">
+            <span id="word-count">Words: 0 | Chars: 0</span>
+            <span id="saved-indicator">✓ Saved</span>
+            <span id="note-timestamp" style="white-space:nowrap;"></span>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay">
+    <div id="modal-box">
+        <h3 id="modal-title">Confirm</h3>
+        <p id="modal-message">Are you sure?</p>
+        <div class="modal-actions" id="modal-actions"></div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+    (function() {
+        // ──────────────────────────────────────
+        // NotesApp - Main Application Class
+        // ──────────────────────────────────────
+        class NotesApp {
+            constructor() {
+                // State
+                this.notes = [];
+                this.activeNoteId = null;
+                this.currentMode = 'text'; // 'text' | 'drawing'
+                this.sortOrder = 'newest'; // 'newest' | 'oldest'
+                this.isShowingTrash = false;
+                this.drawingTool = 'pen'; // 'pen' | 'eraser'
+                this.drawingColor = '#1a1a1a';
+                this.drawingSize = 3;
+                this.undoStack = [];
+                this.redoStack = [];
+                this.maxUndo = 40;
+                this.isDrawing = false;
+                this.lastPoint = null;
+                this.saveTimeout = null;
+                this.toastTimeout = null;
+                this.searchQuery = '';
+
+                // DOM refs
+                this.cacheDom();
+                // Bind events
+                this.bindEvents();
+                // Load notes
+                this.loadNotes();
+                // Initial render
+                this.renderSidebar();
+                this.updateTrashCount();
+                // Set initial mode
+                this.setMode('text');
+                // Load first note or create welcome note
+                if (this.notes.length === 0 || this.notes.every(n => n.isDeleted)) {
+                    this.createWelcomeNote();
+                }
+                const firstActive = this.notes.find(n => !n.isDeleted);
+                if (firstActive && !this.activeNoteId) {
+                    this.loadNote(firstActive.id);
+                } else if (this.activeNoteId) {
+                    this.loadNote(this.activeNoteId);
+                }
+                // Init canvas
+                this.initCanvas();
+                // Dark mode from preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    this.toggleDarkMode(true);
+                }
+            }
+
+            cacheDom() {
+                this.$sidebar = document.getElementById('sidebar');
+                this.$notesList = document.getElementById('notes-list');
+                this.$searchInput = document.getElementById('search-input');
+                this.$sortBtns = document.querySelectorAll('#sort-container .sort-btn');
+                this.$titleInput = document.getElementById('title-input');
+                this.$textEditor = document.getElementById('text-editor');
+                this.$drawingContainer = document.getElementById('drawing-container');
+                this.$drawingCanvas = document.getElementById('drawing-canvas');
+                this.$drawingPreview = document.getElementById('drawing-preview');
+                this.$textToolsGroup = document.getElementById('text-tools-group');
+                this.$drawingToolsGroup = document.getElementById('drawing-tools-group');
+                this.$clearDrawingBtn = document.getElementById('clear-drawing-btn');
+                this.$modeTextBtn = document.getElementById('mode-text-btn');
+                this.$modeDrawingBtn = document.getElementById('mode-drawing-btn');
+                this.$penToolBtn = document.getElementById('pen-tool-btn');
+                this.$eraserToolBtn = document.getElementById('eraser-tool-btn');
+                this.$penSizeSlider = document.getElementById('pen-size-slider');
+                this.$penSizeLabel = document.getElementById('pen-size-label');
+                this.$drawingColorPicker = document.getElementById('drawing-color-picker');
+                this.$textColorPicker = document.getElementById('text-color-picker');
+                this.$savedIndicator = document.getElementById('saved-indicator');
+                this.$wordCount = document.getElementById('word-count');
+                this.$noteTimestamp = document.getElementById('note-timestamp');
+                this.$trashBtn = document.getElementById('trash-btn');
+                this.$trashCount = document.getElementById('trash-count');
+                this.$noteCount = document.getElementById('note-count');
+                this.$modalOverlay = document.getElementById('modal-overlay');
+                this.$modalTitle = document.getElementById('modal-title');
+                this.$modalMessage = document.getElementById('modal-message');
+                this.$modalActions = document.getElementById('modal-actions');
+                this.$toast = document.getElementById('toast');
+                this.$darkModeBtn = document.getElementById('dark-mode-btn');
+                this.$hamburgerBtn = document.getElementById('hamburger-btn');
+                this.$hamburgerBtnOpen = document.getElementById('hamburger-btn-open');
+                this.$sidebarOverlay = document.getElementById('sidebar-overlay');
+                this.$undoBtn = document.getElementById('undo-btn');
+                this.$redoBtn = document.getElementById('redo-btn');
+                this.$headingSelect = document.getElementById('heading-select');
+                this.$importFileInput = document.getElementById('import-file-input');
+            }
+
+            bindEvents() {
+                // Sidebar
+                this.$searchInput.addEventListener('input', () => {
+                    this.searchQuery = this.$searchInput.value.trim().toLowerCase();
+                    this.renderSidebar();
+                });
+                this.$sortBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.$sortBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.sortOrder = btn.dataset.sort;
+                        this.renderSidebar();
+                    });
+                });
+                this.$trashBtn.addEventListener('click', () => this.toggleTrashView());
+                this.$darkModeBtn.addEventListener('click', () => this.toggleDarkMode());
+                this.$hamburgerBtn.addEventListener('click', () => this.closeSidebar());
+                this.$hamburgerBtnOpen.addEventListener('click', () => this.openSidebar());
+                this.$sidebarOverlay.addEventListener('click', () => this.closeSidebar());
+
+                // Title
+                this.$titleInput.addEventListener('input', () => this.onTitleChange());
+
+                // Text editor
+                this.$textEditor.addEventListener('input', () => this.onContentChange());
+                this.$textEditor.addEventListener('keydown', (e) => this.handleEditorKeydown(e));
+                this.$textEditor.addEventListener('paste', (e) => {
+                    // Allow paste but trigger save after
+                    setTimeout(() => this.onContentChange(), 50);
+                });
+
+                // Drawing canvas - Pointer Events
+                this.$drawingCanvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+                this.$drawingCanvas.addEventListener('pointermove', (e) => this.onPointerMove(e));
+                this.$drawingCanvas.addEventListener('pointerup', (e) => this.onPointerUp(e));
+                this.$drawingCanvas.addEventListener('pointerleave', (e) => this.onPointerUp(e));
+                this.$drawingCanvas.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+                this.$drawingCanvas.addEventListener('pointerout', (e) => {
+                    if (this.isDrawing) this.onPointerUp(e);
+                });
+
+                // Toolbar buttons
+                document.getElementById('new-note-btn').addEventListener('click', () => this.createNote());
+                document.getElementById('save-btn').addEventListener('click', () => this.saveCurrentNote(true));
+                document.getElementById('export-note-btn').addEventListener('click', () => this.exportNote());
+                document.getElementById('import-note-btn').addEventListener('click', () => this.$importFileInput
+                    .click());
+                this.$importFileInput.addEventListener('change', (e) => this.importNote(e));
+                document.getElementById('duplicate-btn').addEventListener('click', () => this.duplicateNote());
+                this.$undoBtn.addEventListener('click', () => this.handleUndo());
+                this.$redoBtn.addEventListener('click', () => this.handleRedo());
+                this.$clearDrawingBtn.addEventListener('click', () => this.clearDrawing());
+
+                // Mode toggle
+                this.$modeTextBtn.addEventListener('click', () => this.setMode('text'));
+                this.$modeDrawingBtn.addEventListener('click', () => this.setMode('drawing'));
+
+                // Text tools
+                document.querySelectorAll('#text-tools-group .tbtn[data-command]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const cmd = btn.dataset.command;
+                        document.execCommand(cmd, false, null);
+                        this.$textEditor.focus();
+                        this.onContentChange();
+                        this.updateTextToolActiveStates();
+                    });
+                });
+                this.$headingSelect.addEventListener('change', () => {
+                    const val = this.$headingSelect.value;
+                    if (val === 'p') {
+                        document.execCommand('formatBlock', false, 'p');
+                    } else {
+                        document.execCommand('formatBlock', false, val);
+                    }
+                    this.$textEditor.focus();
+                    this.onContentChange();
+                });
+                this.$textColorPicker.addEventListener('input', () => {
+                    document.execCommand('foreColor', false, this.$textColorPicker.value);
+                    this.$textEditor.focus();
+                    this.onContentChange();
+                });
+
+                // Drawing tools
+                this.$penToolBtn.addEventListener('click', () => this.setDrawingTool('pen'));
+                this.$eraserToolBtn.addEventListener('click', () => this.setDrawingTool('eraser'));
+                this.$penSizeSlider.addEventListener('input', () => {
+                    this.drawingSize = parseInt(this.$penSizeSlider.value);
+                    this.$penSizeLabel.textContent = this.drawingSize + 'px';
+                });
+                this.$drawingColorPicker.addEventListener('input', () => {
+                    this.drawingColor = this.$drawingColorPicker.value;
+                    this.updateColorSwatchSelection();
+                });
+                document.querySelectorAll('#drawing-tools-group .color-swatch').forEach(swatch => {
+                    swatch.addEventListener('click', () => {
+                        this.drawingColor = swatch.dataset.color;
+                        this.$drawingColorPicker.value = this.drawingColor;
+                        this.updateColorSwatchSelection();
+                    });
+                });
+
+                // Drawing preview
+                this.$drawingPreview.addEventListener('click', () => this.setMode('drawing'));
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => this.handleGlobalKeyboard(e));
+
+                // Window events
+                window.addEventListener('beforeunload', () => this.saveCurrentNote(false));
+                window.addEventListener('resize', () => this.handleResize());
+
+                // ResizeObserver for drawing container
+                if (window.ResizeObserver) {
+                    const ro = new ResizeObserver(() => this.handleDrawingContainerResize());
+                    ro.observe(this.$drawingContainer);
+                }
+
+                // Close sidebar when clicking outside on mobile
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768 &&
+                        this.$sidebar.classList.contains('mobile-open') &&
+                        !this.$sidebar.contains(e.target) &&
+                        e.target !== this.$hamburgerBtnOpen &&
+                        !this.$hamburgerBtnOpen.contains(e.target)) {
+                        this.closeSidebar();
+                    }
+                });
+            }
+
+            // ─── Note CRUD ───────────────────
+            generateId() {
+                return Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            createNote(title = 'Untitled Note', content = '', drawing = null) {
+                const note = {
+                    id: this.generateId(),
+                    title: title,
+                    content: content,
+                    drawing: drawing,
+                    isPinned: false,
+                    isDeleted: false,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                };
+                this.notes.unshift(note);
+                this.saveAllNotes();
+                this.renderSidebar();
+                this.loadNote(note.id);
+                this.updateTrashCount();
+                this.showToast('New note created');
+                return note;
+            }
+
+            createWelcomeNote() {
+                this.createNote(
+                    'Welcome! 👋',
+                    '<p>Welcome to your <b>Notes App</b>!</p><p>✨ <b>Text Mode:</b> Write rich text with <i>bold</i>, <u>underline</u>, headings, lists, and colors.</p><p>🎨 <b>Drawing Mode:</b> Switch to draw with pen or eraser. Use different colors and sizes.</p><p>📌 Pin important notes, search through them, and switch between light/dark mode.</p><p>Your notes auto-save and survive page refreshes. Happy note-taking!</p>',
+                    null
+                );
+            }
+
+            loadNote(id) {
+                // Save current note first
+                if (this.activeNoteId && this.activeNoteId !== id) {
+                    this.saveCurrentNote(false);
+                }
+                const note = this.notes.find(n => n.id === id);
+                if (!note) return;
+                this.activeNoteId = id;
+                this.$titleInput.value = note.title;
+                this.$textEditor.innerHTML = note.content || '';
+                this.loadDrawingToCanvas(note.drawing);
+                this.updateDrawingPreview();
+                this.updateStatusBar();
+                this.renderSidebar();
+                this.updateTextToolActiveStates();
+                this.clearUndoRedo();
+                // If in drawing mode, refresh canvas
+                if (this.currentMode === 'drawing') {
+                    this.loadDrawingToCanvas(note.drawing);
+                }
+                this.$textEditor.focus();
+            }
+
+            saveCurrentNote(showIndicator = false) {
+                if (!this.activeNoteId) return;
+                const note = this.notes.find(n => n.id === this.activeNoteId);
+                if (!note) return;
+                note.title = this.$titleInput.value.trim() || 'Untitled Note';
+                note.content = this.$textEditor.innerHTML;
+                note.drawing = this.getCanvasData();
+                note.updatedAt = Date.now();
+                this.saveAllNotes();
+                this.renderSidebar();
+                this.updateStatusBar();
+                this.updateDrawingPreview();
+                if (showIndicator) {
+                    this.showSavedIndicator();
+                    this.showToast('Note saved');
+                }
+            }
+
+            deleteNote(id) {
+                const note = this.notes.find(n => n.id === id);
+                if (!note) return;
+                if (note.isDeleted) {
+                    // Permanent delete
+                    this.showModal(
+                        'Permanently Delete?',
+                        'This note will be permanently deleted and cannot be recovered.',
+                        [
+                            { text: 'Cancel', cls: 'btn-cancel', action: () => this.hideModal() },
+                            {
+                                text: 'Delete Forever',
+                                cls: 'btn-confirm',
+                                action: () => {
+                                    this.notes = this.notes.filter(n => n.id !== id);
+                                    if (this.activeNoteId === id) {
+                                        this.activeNoteId = null;
+                                        const next = this.notes.find(n => !n.isDeleted);
+                                        if (next) this.loadNote(next.id);
+                                        else {
+                                            this.$titleInput.value = '';
+                                            this.$textEditor.innerHTML = '';
+                                            this.clearCanvas();
+                                            this.updateStatusBar();
+                                        }
+                                    }
+                                    this.saveAllNotes();
+                                    this.renderSidebar();
+                                    this.updateTrashCount();
+                                    this.hideModal();
+                                    this.showToast('Note permanently deleted');
+                                }
+                            },
+                        ]
+                    );
+                } else {
+                    // Move to trash
+                    note.isDeleted = true;
+                    note.updatedAt = Date.now();
+                    if (this.activeNoteId === id) {
+                        this.activeNoteId = null;
+                        const next = this.notes.find(n => !n.isDeleted);
+                        if (next) this.loadNote(next.id);
+                        else {
+                            this.$titleInput.value = '';
+                            this.$textEditor.innerHTML = '';
+                            this.clearCanvas();
+                            this.updateStatusBar();
+                        }
+                    }
+                    this.saveAllNotes();
+                    this.renderSidebar();
+                    this.updateTrashCount();
+                    this.showToast('Note moved to trash');
+                }
+            }
+
+            restoreNote(id) {
+                const note = this.notes.find(n => n.id === id);
+                if (!note) return;
+                note.isDeleted = false;
+                note.updatedAt = Date.now();
+                this.saveAllNotes();
+                this.renderSidebar();
+                this.updateTrashCount();
+                this.showToast('Note restored');
+            }
+
+            togglePin(id) {
+                const note = this.notes.find(n => n.id === id);
+                if (!note || note.isDeleted) return;
+                note.isPinned = !note.isPinned;
+                note.updatedAt = Date.now();
+                this.saveAllNotes();
+                this.renderSidebar();
+            }
+
+            duplicateNote() {
+                if (!this.activeNoteId) return;
+                const note = this.notes.find(n => n.id === this.activeNoteId);
+                if (!note || note.isDeleted) return;
+                this.saveCurrentNote(false);
+                const newNote = {
+                    ...note,
+                    id: this.generateId(),
+                    title: note.title + ' (Copy)',
+                    isPinned: false,
+                    isDeleted: false,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                };
+                this.notes.unshift(newNote);
+                this.saveAllNotes();
+                this.renderSidebar();
+                this.loadNote(newNote.id);
+                this.updateTrashCount();
+                this.showToast('Note duplicated');
+            }
+
+            // ─── Drawing ────────────────────
+            initCanvas() {
+                this.ctx = this.$drawingCanvas.getContext('2d');
+                this.resizeCanvas();
+                this.clearCanvas();
+            }
+
+            resizeCanvas() {
+                const container = this.$drawingContainer;
+                const w = Math.max(400, container.clientWidth - 40);
+                const h = Math.max(300, container.clientHeight - 60);
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const currentData = this.getCanvasData();
+                this.$drawingCanvas.width = w * dpr;
+                this.$drawingCanvas.height = h * dpr;
+                this.$drawingCanvas.style.width = w + 'px';
+                this.$drawingCanvas.style.height = h + 'px';
+                this.ctx = this.$drawingCanvas.getContext('2d');
+                this.ctx.scale(dpr, dpr);
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                if (currentData) {
+                    this.loadDrawingToCanvas(currentData);
+                }
+            }
+
+            getCanvasData() {
+                try {
+                    if (this.$drawingCanvas.width > 0 && this.$drawingCanvas.height > 0) {
+                        // Check if canvas has any non-transparent pixels
+                        const ctx = this.$drawingCanvas.getContext('2d');
+                        const imageData = ctx.getImageData(0, 0, this.$drawingCanvas.width, this.$drawingCanvas
+                            .height);
+                        let hasContent = false;
+                        for (let i = 3; i < imageData.data.length; i += 4) {
+                            if (imageData.data[i] > 0) { hasContent = true; break; }
+                        }
+                        if (hasContent) {
+                            return this.$drawingCanvas.toDataURL('image/png');
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+                return null;
+            }
+
+            loadDrawingToCanvas(dataUrl) {
+                if (!dataUrl) {
+                    this.clearCanvas();
+                    return;
+                }
+                const img = new Image();
+                img.onload = () => {
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                    const displayW = parseFloat(this.$drawingCanvas.style.width) || this.$drawingCanvas.width /
+                        dpr;
+                    const displayH = parseFloat(this.$drawingCanvas.style.height) || this.$drawingCanvas.height /
+                        dpr;
+                    this.ctx.clearRect(0, 0, displayW, displayH);
+                    this.ctx.drawImage(img, 0, 0, displayW, displayH);
+                };
+                img.src = dataUrl;
+            }
+
+            clearCanvas() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const displayW = parseFloat(this.$drawingCanvas.style.width) || this.$drawingCanvas.width / dpr;
+                const displayH = parseFloat(this.$drawingCanvas.style.height) || this.$drawingCanvas.height / dpr;
+                if (this.ctx) {
+                    this.ctx.clearRect(0, 0, displayW || 800, displayH || 500);
+                }
+                this.clearUndoRedo();
+            }
+
+            clearDrawing() {
+                this.showModal(
+                    'Clear Drawing?',
+                    'This will erase the entire drawing. This action can be undone with Ctrl+Z.',
+                    [
+                        { text: 'Cancel', cls: 'btn-cancel', action: () => this.hideModal() },
+                        {
+                            text: 'Clear',
+                            cls: 'btn-confirm',
+                            action: () => {
+                                this.pushUndo();
+                                this.clearCanvas();
+                                this.onDrawingChange();
+                                this.hideModal();
+                            }
+                        },
+                    ]
+                );
+            }
+
+            pushUndo() {
+                const data = this.getCanvasData();
+                if (data || this.undoStack.length > 0) {
+                    this.undoStack.push(data);
+                    if (this.undoStack.length > this.maxUndo) this.undoStack.shift();
+                    this.redoStack = [];
+                }
+            }
+
+            handleUndo() {
+                if (this.currentMode === 'drawing') {
+                    if (this.undoStack.length === 0) return;
+                    const current = this.getCanvasData();
+                    this.redoStack.push(current);
+                    const prev = this.undoStack.pop();
+                    this.loadDrawingToCanvas(prev);
+                    this.onDrawingChange();
+                } else {
+                    document.execCommand('undo', false, null);
+                    this.$textEditor.focus();
+                    this.onContentChange();
+                }
+            }
+
+            handleRedo() {
+                if (this.currentMode === 'drawing') {
+                    if (this.redoStack.length === 0) return;
+                    const current = this.getCanvasData();
+                    this.undoStack.push(current);
+                    const next = this.redoStack.pop();
+                    this.loadDrawingToCanvas(next);
+                    this.onDrawingChange();
+                } else {
+                    document.execCommand('redo', false, null);
+                    this.$textEditor.focus();
+                    this.onContentChange();
+                }
+            }
+
+            clearUndoRedo() {
+                this.undoStack = [];
+                this.redoStack = [];
+            }
+
+            onDrawingChange() {
+                if (!this.activeNoteId) return;
+                const note = this.notes.find(n => n.id === this.activeNoteId);
+                if (!note) return;
+                note.drawing = this.getCanvasData();
+                note.updatedAt = Date.now();
+                this.updateDrawingPreview();
+                this.debouncedSave();
+            }
+
+            updateDrawingPreview() {
+                const note = this.activeNoteId ? this.notes.find(n => n.id === this.activeNoteId) : null;
+                if (note && note.drawing) {
+                    this.$drawingPreview.src = note.drawing;
+                    this.$drawingPreview.classList.add('visible');
+                } else {
+                    this.$drawingPreview.classList.remove('visible');
+                }
+            }
+
+            // ─── Pointer Events for Canvas ───
+            onPointerDown(e) {
+                if (this.currentMode !== 'drawing') return;
+                e.preventDefault();
+                this.isDrawing = true;
+                this.pushUndo();
+                const pos = this.getCanvasPos(e);
+                this.lastPoint = pos;
+                this.ctx.beginPath();
+                this.ctx.moveTo(pos.x, pos.y);
+                // Draw a dot for single click
+                this.drawDot(pos);
+                this.$drawingCanvas.setPointerCapture(e.pointerId);
+            }
+
+            onPointerMove(e) {
+                if (!this.isDrawing || this.currentMode !== 'drawing') return;
+                e.preventDefault();
+                const pos = this.getCanvasPos(e);
+                this.drawLine(this.lastPoint, pos);
+                this.lastPoint = pos;
+            }
+
+            onPointerUp(e) {
+                if (!this.isDrawing) return;
+                e.preventDefault();
+                this.isDrawing = false;
+                this.lastPoint = null;
+                this.ctx.closePath();
+                this.onDrawingChange();
+                try { this.$drawingCanvas.releasePointerCapture(e.pointerId); } catch (ex) { /* ok */ }
+            }
+
+            getCanvasPos(e) {
+                const rect = this.$drawingCanvas.getBoundingClientRect();
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const displayW = parseFloat(this.$drawingCanvas.style.width) || this.$drawingCanvas.width / dpr;
+                const displayH = parseFloat(this.$drawingCanvas.style.height) || this.$drawingCanvas.height / dpr;
+                const scaleX = displayW / rect.width;
+                const scaleY = displayH / rect.height;
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY,
+                };
+            }
+
+            drawDot(pos) {
+                if (this.drawingTool === 'eraser') {
+                    this.ctx.globalCompositeOperation = 'destination-out';
+                    this.ctx.fillStyle = 'rgba(0,0,0,1)';
+                } else {
+                    this.ctx.globalCompositeOperation = 'source-over';
+                    this.ctx.fillStyle = this.drawingColor;
+                }
+                this.ctx.beginPath();
+                this.ctx.arc(pos.x, pos.y, this.drawingSize / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.closePath();
+            }
+
+            drawLine(from, to) {
+                if (this.drawingTool === 'eraser') {
+                    this.ctx.globalCompositeOperation = 'destination-out';
+                    this.ctx.strokeStyle = 'rgba(0,0,0,1)';
+                } else {
+                    this.ctx.globalCompositeOperation = 'source-over';
+                    this.ctx.strokeStyle = this.drawingColor;
+                }
+                this.ctx.lineWidth = this.drawingSize;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                this.ctx.beginPath();
+                this.ctx.moveTo(from.x, from.y);
+                this.ctx.lineTo(to.x, to.y);
+                this.ctx.stroke();
+                this.ctx.closePath();
+            }
+
+            // ─── Mode Management ────────────
+            setMode(mode) {
+                this.currentMode = mode;
+                if (mode === 'text') {
+                    this.$textEditor.classList.remove('hidden');
+                    this.$drawingContainer.classList.add('hidden');
+                    this.$textToolsGroup.classList.remove('hidden');
+                    this.$drawingToolsGroup.classList.add('hidden');
+                    this.$clearDrawingBtn.style.display = 'none';
+                    this.$modeTextBtn.classList.add('active-tool');
+                    this.$modeDrawingBtn.classList.remove('active-tool');
+                    this.$textEditor.focus();
+                } else {
+                    this.$textEditor.classList.add('hidden');
+                    this.$drawingContainer.classList.remove('hidden');
+                    this.$textToolsGroup.classList.add('hidden');
+                    this.$drawingToolsGroup.classList.remove('hidden');
+                    this.$clearDrawingBtn.style.display = '';
+                    this.$modeDrawingBtn.classList.add('active-tool');
+                    this.$modeTextBtn.classList.remove('active-tool');
+                    this.resizeCanvas();
+                    const note = this.activeNoteId ? this.notes.find(n => n.id === this.activeNoteId) : null;
+                    if (note && note.drawing) {
+                        this.loadDrawingToCanvas(note.drawing);
+                    }
+                    this.updateColorSwatchSelection();
+                }
+            }
+
+            setDrawingTool(tool) {
+                this.drawingTool = tool;
+                if (tool === 'pen') {
+                    this.$penToolBtn.classList.add('active-tool');
+                    this.$eraserToolBtn.classList.remove('active-tool');
+                    this.$drawingCanvas.style.cursor = 'crosshair';
+                } else {
+                    this.$eraserToolBtn.classList.add('active-tool');
+                    this.$penToolBtn.classList.remove('active-tool');
+                    this.$drawingCanvas.style.cursor = 'cell';
+                }
+            }
+
+            updateColorSwatchSelection() {
+                document.querySelectorAll('#drawing-tools-group .color-swatch').forEach(swatch => {
+                    swatch.classList.toggle('selected', swatch.dataset.color === this.drawingColor);
+                });
+            }
+
+            // ─── Sidebar Rendering ──────────
+            renderSidebar() {
+                let filtered = this.notes.filter(n => {
+                    if (this.isShowingTrash) return n.isDeleted;
+                    return !n.isDeleted;
+                });
+                if (this.searchQuery && !this.isShowingTrash) {
+                    filtered = filtered.filter(n =>
+                        n.title.toLowerCase().includes(this.searchQuery) ||
+                        this.stripHtml(n.content).toLowerCase().includes(this.searchQuery)
+                    );
+                }
+                // Sort
+                filtered.sort((a, b) => {
+                    if (!this.isShowingTrash) {
+                        if (a.isPinned && !b.isPinned) return -1;
+                        if (!a.isPinned && b.isPinned) return 1;
+                    }
+                    const dateA = this.isShowingTrash ? a.updatedAt : (a.isPinned ? a.updatedAt : a.updatedAt);
+                    const dateB = this.isShowingTrash ? b.updatedAt : (b.isPinned ? b.updatedAt : b.updatedAt);
+                    return this.sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+                });
+
+                this.$notesList.innerHTML = '';
+                if (filtered.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.style.cssText =
+                        'text-align:center;padding:30px 16px;color:var(--text-tertiary);font-size:0.85rem;';
+                    emptyMsg.textContent = this.isShowingTrash ? 'Trash is empty' : (this.searchQuery ?
+                        'No notes match your search' : 'No notes yet. Click "+ New" to create one!');
+                    this.$notesList.appendChild(emptyMsg);
+                } else {
+                    filtered.forEach(note => {
+                        const item = document.createElement('div');
+                        item.className = 'note-item' +
+                            (note.id === this.activeNoteId ? ' active' : '') +
+                            (note.isPinned && !this.isShowingTrash ? ' pinned' : '');
+                        item.innerHTML = `
+                  ${note.isPinned && !this.isShowingTrash ? '<span class="pin-icon">📌</span>' : ''}
+                  <div class="note-info">
+                    <div class="note-title">${this.escapeHtml(note.title || 'Untitled')}</div>
+                    <div class="note-preview">${this.getPreview(note)}</div>
+                    <div class="note-time">${this.formatTime(note.updatedAt)}</div>
+                  </div>
+                  <div class="note-actions">
+                    ${!this.isShowingTrash ? `
+                      <button class="mini-btn" data-action="pin" title="Pin/Unpin">📌</button>
+                      <button class="mini-btn danger" data-action="delete" title="Delete">🗑️</button>
+                    ` : `
+                      <button class="mini-btn" data-action="restore" title="Restore">↩️</button>
+                      <button class="mini-btn danger" data-action="permadelete" title="Delete Forever">🗑️</button>
+                    `}
+                  </div>`;
+                        // Click to load
+                        item.querySelector('.note-info').addEventListener('click', () => {
+                            if (this.isShowingTrash) return;
+                            this.loadNote(note.id);
+                            if (window.innerWidth <= 768) this.closeSidebar();
+                        });
+                        // Action buttons
+                        item.querySelectorAll('.mini-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const action = btn.dataset.action;
+                                if (action === 'pin') this.togglePin(note.id);
+                                if (action === 'delete') this.deleteNote(note.id);
+                                if (action === 'restore') this.restoreNote(note.id);
+                                if (action === 'permadelete') this.deleteNote(note.id);
+                            });
+                        });
+                        this.$notesList.appendChild(item);
+                    });
+                }
+                this.$noteCount.textContent = this.notes.filter(n => !n.isDeleted).length + ' notes';
+                this.updateTrashCount();
+            }
+
+            getPreview(note) {
+                if (note.drawing && !note.content) return '🖼️ Drawing';
+                const text = this.stripHtml(note.content || '');
+                if (!text && note.drawing) return '🖼️ Drawing + text';
+                return text.substring(0, 60) || 'Empty note';
+            }
+
+            updateTrashCount() {
+                const count = this.notes.filter(n => n.isDeleted).length;
+                this.$trashCount.textContent = count > 0 ? count : '';
+            }
+
+            toggleTrashView() {
+                this.isShowingTrash = !this.isShowingTrash;
+                if (this.isShowingTrash) {
+                    this.$trashBtn.innerHTML = '📋 <span>All Notes</span>';
+                    this.$searchInput.placeholder = 'Search trash...';
+                } else {
+                    this.$trashBtn.innerHTML = '🗑️ Trash <span class="trash-count" id="trash-count-inner"></span>';
+                    this.$searchInput.placeholder = 'Search notes...';
+                    // Update inner trash count span
+                    setTimeout(() => {
+                        const innerCount = document.getElementById('trash-count-inner');
+                        if (innerCount) {
+                            const count = this.notes.filter(n => n.isDeleted).length;
+                            innerCount.textContent = count > 0 ? count : '';
+                            innerCount.className = 'trash-count';
+                        }
+                    }, 10);
+                }
+                this.searchQuery = '';
+                this.$searchInput.value = '';
+                this.renderSidebar();
+                this.updateTrashCount();
+            }
+
+            // ─── Modal ──────────────────────
+            showModal(title, message, actions) {
+                this.$modalTitle.textContent = title;
+                this.$modalMessage.textContent = message;
+                this.$modalActions.innerHTML = '';
+                actions.forEach(a => {
+                    const btn = document.createElement('button');
+                    btn.textContent = a.text;
+                    btn.className = a.cls;
+                    btn.addEventListener('click', a.action);
+                    this.$modalActions.appendChild(btn);
+                });
+                this.$modalOverlay.classList.add('visible');
+            }
+
+            hideModal() {
+                this.$modalOverlay.classList.remove('visible');
+            }
+
+            // ─── Toast ──────────────────────
+            showToast(msg) {
+                if (this.toastTimeout) clearTimeout(this.toastTimeout);
+                this.$toast.textContent = msg;
+                this.$toast.classList.add('visible');
+                this.toastTimeout = setTimeout(() => {
+                    this.$toast.classList.remove('visible');
+                }, 2000);
+            }
+
+            showSavedIndicator() {
+                this.$savedIndicator.classList.add('visible');
+                setTimeout(() => this.$savedIndicator.classList.remove('visible'), 1800);
+            }
+
+            // ─── Status Bar ────────────────
+            updateStatusBar() {
+                const note = this.activeNoteId ? this.notes.find(n => n.id === this.activeNoteId) : null;
+                const text = this.$textEditor.innerText || '';
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                const chars = text.length;
+                this.$wordCount.textContent = `Words: ${words} | Chars: ${chars}`;
+                if (note) {
+                    this.$noteTimestamp.textContent = 'Updated: ' + this.formatTime(note.updatedAt);
+                } else {
+                    this.$noteTimestamp.textContent = '';
+                }
+            }
+
+            updateTextToolActiveStates() {
+                document.querySelectorAll('#text-tools-group .tbtn[data-command]').forEach(btn => {
+                    const cmd = btn.dataset.command;
+                    const isActive = document.queryCommandState(cmd);
+                    btn.classList.toggle('active-tool', isActive);
+                });
+            }
+
+            // ─── Event Handlers ─────────────
+            onTitleChange() {
+                if (!this.activeNoteId) return;
+                const note = this.notes.find(n => n.id === this.activeNoteId);
+                if (!note) return;
+                note.title = this.$titleInput.value.trim() || 'Untitled Note';
+                note.updatedAt = Date.now();
+                this.debouncedSave();
+                this.renderSidebar();
+            }
+
+            onContentChange() {
+                if (!this.activeNoteId) return;
+                const note = this.notes.find(n => n.id === this.activeNoteId);
+                if (!note) return;
+                note.content = this.$textEditor.innerHTML;
+                note.updatedAt = Date.now();
+                this.updateStatusBar();
+                this.updateTextToolActiveStates();
+                this.debouncedSave();
+            }
+
+            debouncedSave() {
+                if (this.saveTimeout) clearTimeout(this.saveTimeout);
+                this.saveTimeout = setTimeout(() => {
+                    this.saveAllNotes();
+                    this.renderSidebar();
+                    this.showSavedIndicator();
+                }, 600);
+            }
+
+            handleEditorKeydown(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 's') {
+                        e.preventDefault();
+                        this.saveCurrentNote(true);
+                    }
+                    if (e.key === 'z' && !e.shiftKey) {
+                        // Let browser handle text undo in text mode
+                        if (this.currentMode !== 'text') {
+                            e.preventDefault();
+                            this.handleUndo();
+                        }
+                    }
+                    if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+                        if (this.currentMode !== 'text') {
+                            e.preventDefault();
+                            this.handleRedo();
+                        }
+                    }
+                    if (e.key === 'f') {
+                        e.preventDefault();
+                        this.$searchInput.focus();
+                        this.$searchInput.select();
+                    }
+                }
+                // Update on keypress
+                setTimeout(() => this.onContentChange(), 10);
+            }
+
+            handleGlobalKeyboard(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 's') {
+                        e.preventDefault();
+                        this.saveCurrentNote(true);
+                    }
+                    if (e.key === 'f') {
+                        e.preventDefault();
+                        this.$searchInput.focus();
+                        this.$searchInput.select();
+                    }
+                    if (e.key === 'z' && !e.shiftKey && this.currentMode === 'drawing') {
+                        e.preventDefault();
+                        this.handleUndo();
+                    }
+                    if ((e.key === 'y' || (e.key === 'z' && e.shiftKey)) && this.currentMode === 'drawing') {
+                        e.preventDefault();
+                        this.handleRedo();
+                    }
+                }
+                if (e.key === 'Escape') {
+                    this.hideModal();
+                    if (window.innerWidth <= 768) this.closeSidebar();
+                }
+            }
+
+            handleResize() {
+                if (this.currentMode === 'drawing') {
+                    this.resizeCanvas();
+                    const note = this.activeNoteId ? this.notes.find(n => n.id === this.activeNoteId) : null;
+                    if (note && note.drawing) {
+                        this.loadDrawingToCanvas(note.drawing);
+                    }
+                }
+            }
+
+            handleDrawingContainerResize() {
+                if (this.currentMode === 'drawing' && !this.isDrawing) {
+                    const note = this.activeNoteId ? this.notes.find(n => n.id === this.activeNoteId) : null;
+                    const currentData = note ? note.drawing : null;
+                    this.resizeCanvas();
+                    if (currentData) {
+                        this.loadDrawingToCanvas(currentData);
+                    }
+                }
+            }
+
+            // ─── Dark Mode ──────────────────
+            toggleDarkMode(force = null) {
+                const isDark = force !== null ? force : !document.body.classList.contains('dark-mode');
+                if (isDark) {
+                    document.body.classList.add('dark-mode');
+                    this.$darkModeBtn.textContent = '☀️';
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    this.$darkModeBtn.textContent = '🌓';
+                }
+                // Update text color picker default
+                if (isDark) {
+                    this.$textColorPicker.value = '#e4e4e4';
+                } else {
+                    this.$textColorPicker.value = '#1a1a1a';
+                }
+                // Refresh canvas in drawing mode
+                if (this.currentMode === 'drawing') {
+                    const note = this.activeNoteId ? this.notes.find(n => n.id === this.activeNoteId) : null;
+                    if (note && note.drawing) {
+                        this.loadDrawingToCanvas(note.drawing);
+                    }
+                }
+            }
+
+            // ─── Export / Import ────────────
+            exportNote() {
+                if (!this.activeNoteId) {
+                    this.showToast('No note selected');
+                    return;
+                }
+                this.saveCurrentNote(false);
+                const note = this.notes.find(n => n.id === this.activeNoteId);
+                if (!note) return;
+                this.showModal(
+                    'Export Note',
+                    'Choose export format:',
+                    [
+                        {
+                            text: 'Export as .txt',
+                            cls: 'btn-secondary-confirm',
+                            action: () => {
+                                this.downloadFile(
+                                    (note.title || 'note') + '.txt',
+                                    this.stripHtml(note.content),
+                                    'text/plain'
+                                );
+                                this.hideModal();
+                                this.showToast('Exported as .txt');
+                            }
+                        },
+                        {
+                            text: 'Export as .html',
+                            cls: 'btn-secondary-confirm',
+                            action: () => {
+                                const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${this.escapeHtml(note.title)}</title></head><body>${note.content||''}${note.drawing?`<br><img src="${note.drawing}" alt="drawing">`:''}</body></html>`;
+                                this.downloadFile(
+                                    (note.title || 'note') + '.html',
+                                    htmlContent,
+                                    'text/html'
+                                );
+                                this.hideModal();
+                                this.showToast('Exported as .html');
+                            }
+                        },
+                        {
+                            text: 'Export Drawing as PNG',
+                            cls: 'btn-secondary-confirm',
+                            action: () => {
+                                if (note.drawing) {
+                                    // Create a temp canvas with white background
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        const tempCanvas = document.createElement('canvas');
+                                        tempCanvas.width = img.width;
+                                        tempCanvas.height = img.height;
+                                        const tCtx = tempCanvas.getContext('2d');
+                                        tCtx.fillStyle = '#ffffff';
+                                        tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas
+                                            .height);
+                                        tCtx.drawImage(img, 0, 0);
+                                        tempCanvas.toBlob(blob => {
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = (note.title || 'drawing') +
+                                                '.png';
+                                            a.click();
+                                            URL.revokeObjectURL(url);
+                                        }, 'image/png');
+                                    };
+                                    img.src = note.drawing;
+                                    this.showToast('Drawing exported as PNG');
+                                } else {
+                                    this.showToast('No drawing to export');
+                                }
+                                this.hideModal();
+                            }
+                        },
+                        { text: 'Cancel', cls: 'btn-cancel', action: () => this.hideModal() },
+                    ]
+                );
+            }
+
+            importNote(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const content = reader.result;
+                    let title = file.name.replace(/\.(txt|html|json)$/i, '');
+                    let noteContent = '';
+                    let drawing = null;
+                    if (file.name.endsWith('.json')) {
+                        try {
+                            const data = JSON.parse(content);
+                            title = data.title || title;
+                            noteContent = data.content || '';
+                            drawing = data.drawing || null;
+                        } catch (ex) {
+                            noteContent = content;
+                        }
+                    } else if (file.name.endsWith('.html')) {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(content, 'text/html');
+                        noteContent = doc.body.innerHTML;
+                    } else {
+                        noteContent = '<p>' + content.replace(/\n/g, '</p><p>') + '</p>';
+                    }
+                    this.createNote(title, noteContent, drawing);
+                    this.showToast('Note imported');
+                };
+                reader.readAsText(file);
+                this.$importFileInput.value = '';
+            }
+
+            downloadFile(filename, content, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            // ─── Storage ────────────────────
+            saveAllNotes() {
+                try {
+                    localStorage.setItem('notesapp_data', JSON.stringify(this.notes));
+                } catch (e) {
+                    this.showToast('⚠️ Storage full! Please delete some notes.');
+                }
+            }
+
+            loadNotes() {
+                try {
+                    const data = localStorage.getItem('notesapp_data');
+                    if (data) {
+                        this.notes = JSON.parse(data);
+                        if (!Array.isArray(this.notes)) this.notes = [];
+                    } else {
+                        this.notes = [];
+                    }
+                } catch (e) {
+                    this.notes = [];
+                }
+            }
+
+            // ─── Helpers ────────────────────
+            stripHtml(html) {
+                const div = document.createElement('div');
+                div.innerHTML = html || '';
+                return div.textContent || div.innerText || '';
+            }
+
+            escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str || '';
+                return div.innerHTML;
+            }
+
+            formatTime(timestamp) {
+                if (!timestamp) return '';
+                const now = Date.now();
+                const diff = now - timestamp;
+                const seconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                if (seconds < 10) return 'Just now';
+                if (seconds < 60) return seconds + 's ago';
+                if (minutes < 60) return minutes + 'm ago';
+                if (hours < 24) return hours + 'h ago';
+                if (days === 1) return 'Yesterday';
+                if (days < 7) return days + 'd ago';
+                const date = new Date(timestamp);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+
+            // ─── Sidebar Mobile ────────────
+            openSidebar() {
+                if (window.innerWidth <= 768) {
+                    this.$sidebar.classList.add('mobile-open');
+                    this.$sidebar.classList.remove('collapsed');
+                    this.$sidebarOverlay.style.display = 'block';
+                } else {
+                    this.$sidebar.classList.remove('collapsed');
+                }
+            }
+
+            closeSidebar() {
+                if (window.innerWidth <= 768) {
+                    this.$sidebar.classList.remove('mobile-open');
+                    this.$sidebarOverlay.style.display = 'none';
+                } else {
+                    this.$sidebar.classList.add('collapsed');
+                }
+            }
+        }
+
+        // ──────────────────────────────────────
+        // Initialize App
+        // ──────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new NotesApp();
+            // Expose for debugging
+            window.notesApp = app;
+
+            // Handle mobile sidebar initial state
+            if (window.innerWidth <= 768) {
+                app.$sidebar.classList.add('collapsed');
+                app.$sidebar.classList.remove('mobile-open');
+                app.$sidebarOverlay.style.display = 'none';
+                app.$hamburgerBtnOpen.style.display = 'flex';
+                app.$hamburgerBtn.style.display = 'flex';
+            } else {
+                app.$sidebar.classList.remove('collapsed');
+                app.$hamburgerBtnOpen.style.display = 'none';
+                app.$hamburgerBtn.style.display = 'flex';
+            }
+
+            // Update hamburger visibility on resize
+            window.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    app.$hamburgerBtnOpen.style.display = 'flex';
+                    app.$hamburgerBtn.style.display = 'flex';
+                    if (!app.$sidebar.classList.contains('mobile-open') && !app.$sidebar.classList
+                        .contains('collapsed')) {
+                        app.$sidebar.classList.add('collapsed');
+                    }
+                } else {
+                    app.$hamburgerBtnOpen.style.display = 'none';
+                    app.$sidebar.classList.remove('mobile-open', 'collapsed');
+                    app.$sidebarOverlay.style.display = 'none';
+                }
+            });
+
+            // Close modal on overlay click
+            document.getElementById('modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    app.hideModal();
+                }
+            });
+
+            // Initial status bar update
+            app.updateStatusBar();
+        });
+    })();
+</script>
+</body>
+</html>
